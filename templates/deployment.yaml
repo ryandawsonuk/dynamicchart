@@ -1,0 +1,55 @@
+{{- range $idx, $instance := .Values.instances }}
+apiVersion: apps/v1beta2
+kind: Deployment
+metadata:
+  name: {{ include "dynamicchart.fullname" $ }}-{{ $instance.name }}
+  labels:
+    app: {{ include "dynamicchart.name" $ }}
+    instance: {{ $instance.name }}
+    chart: {{ include "dynamicchart.chart" $ }}
+    release: {{ $.Release.Name }}
+    heritage: {{ $.Release.Service }}
+spec:
+  replicas: {{ $instance.replicaCount }}
+  selector:
+    matchLabels:
+      app: {{ include "dynamicchart.name" $ }}
+      instance: {{ $instance.name }}
+      release: {{ $.Release.Name }}
+  template:
+    metadata:
+      labels:
+      app: {{ include "dynamicchart.name" $ }}
+        release: {{ $.Release.Name }}
+    spec:
+      containers:
+        - name: {{ $.Chart.Name }}
+          image: "{{ default $.Values.image.repostory $instance.image.repository }}:{{ default $.Values.image.tag $instance.image.tag }}"
+          imagePullPolicy: Always
+          ports:
+            - name: http
+              containerPort: 80
+              protocol: TCP
+          livenessProbe:
+            httpGet:
+              path: /
+              port: http
+          readinessProbe:
+            httpGet:
+              path: /
+              port: http
+          resources:
+{{ toYaml (default $.Values.resources $instance.resources) | indent 12 }}
+    {{- with (default $.Values.nodeSelector $instance.nodeSelector) }}
+      nodeSelector:
+{{ toYaml . | indent 8 }}
+    {{- end }}
+    {{- with (default $.Values.affinity $instance.affinity) }}
+      affinity:
+{{ toYaml . | indent 8 }}
+    {{- end }}
+    {{- with (default $.Values.tolerations $instance.tolerations) }}
+      tolerations:
+{{ toYaml . | indent 8 }}
+    {{- end }}
+{{- end }}

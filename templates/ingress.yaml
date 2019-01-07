@@ -1,0 +1,41 @@
+{{- range $idx, $instance := .Values.instances }}
+{{- if (default $.Values.ingress.enabled $instance.ingress.enabled) -}}
+{{- $fullName := include "dynamicchart.fullname" $ -}}
+{{- $ingressPath := (default $.Values.ingress.path $instance.ingress.path) -}}
+apiVersion: extensions/v1beta1
+kind: Ingress
+metadata:
+  name: {{ $fullName }}-{{ $instance.name }}
+  labels:
+    app: {{ include "dynamicchart.name" $ }}
+    instance: {{ $instance.name }}
+    chart: {{ include "dynamicchart.chart" $ }}
+    release: {{ $.Release.Name }}
+    heritage: {{ $.Release.Service }}
+{{- with (default $.Values.ingress.annotations $instance.ingress.annotations) }}
+  annotations:
+{{ toYaml . | indent 4 }}
+{{- end }}
+spec:
+{{- if (default $.Values.ingress.tls $instance.ingress.tls) }}
+  tls:
+  {{- range (default $.Values.ingress.tls $instance.ingress.tls) }}
+    - hosts:
+      {{- range .hosts }}
+        - {{ . | quote }}
+      {{- end }}
+      secretName: {{ .secretName }}
+  {{- end }}
+{{- end }}
+  rules:
+  {{- range (default $.Values.ingress.hosts $instance.ingress.hosts) }}
+    - host: {{ . | quote }}
+      http:
+        paths:
+          - path: {{ $ingressPath }}
+            backend:
+              serviceName: {{ $fullName }}
+              servicePort: http
+  {{- end }}
+{{- end }}
+{{- end }}

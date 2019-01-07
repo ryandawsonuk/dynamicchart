@@ -1,0 +1,23 @@
+{{- range $idx, $instance := .Values.instances }}
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "dynamicchart.fullname" $ }}-{{ $instance.name }}
+  labels:
+    app: {{ include "dynamicchart.name" $ }}
+    instance: {{ $instance.name }}
+    chart: {{ include "dynamicchart.chart" $ }}
+    release: {{ $.Release.Name }}
+    heritage: {{ $.Release.Service }}
+spec:
+  type: {{ default $.Values.service.type $instance.service.type }}
+  ports:
+    - port: {{ default $.Values.service.port $instance.service.port }}
+      targetPort: http
+      protocol: TCP
+      name: http
+  selector:
+    app: {{ include "dynamicchart.name" $ }}
+    instance: {{ $instance.name }}
+    release: {{ $.Release.Name }}
+{{- end }}
